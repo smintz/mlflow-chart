@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "mlflow.fullname" . }}-init-script
+data:
+    init.sh: |-
+        #!/bin/bash
+        set -e
+        pip install psycopg2-binary
+        mlflow "$@"

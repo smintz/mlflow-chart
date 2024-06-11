@@ -35,6 +35,21 @@ spec:
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          command: ["/script/init.sh"]
+          args:
+            - "server"
+            - "--host"
+            - "0.0.0.0"
+            - "-p"
+            - "{{ .Values.service.port }}"
+            - "--backend-store-uri"
+            {{ if .Values.postgresql.enabled }}
+            - "postgresql://{{ .Values.postgresql.global.postgresql.auth.username }}:{{ .Values.postgresql.global.postgresql.auth.password }}@{{ .Release.Name}}-postgresql:{{ .Values.postgresql.global.postgresql.service.ports.postgresql }}/{{ .Values.postgresql.global.postgresql.auth.database }}"
+            {{ else }}
+            - "{{ .Values.databaseUri }}"
+            {{ end }}
+            - "--artifacts-destination"
+            - "{{ .Values.artifactsDestination }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http
@@ -46,12 +61,18 @@ spec:
             {{- toYaml .Values.readinessProbe | nindent 12 }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-          {{- with .Values.volumeMounts }}
           volumeMounts:
+            - name: script
+              mountPath: "/script"
+          {{- with .Values.volumeMounts }}
             {{- toYaml . | nindent 12 }}
           {{- end }}
-      {{- with .Values.volumes }}
       volumes:
+        - name: script
+          configMap:
+            name: {{ include "mlflow.fullname" . }}-init-script
+            defaultMode: 0500
+      {{- with .Values.volumes }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.nodeSelector }}
