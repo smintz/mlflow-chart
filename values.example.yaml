@@ -1,0 +1,49 @@
+postgresql:
+  enabled: true
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+
+ingress:
+  enabled: false
+  # Fill in the className and annotations based on your ingress controller
+  className: ""
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    kubernetes.io/tls-acme: "true"
+  hosts:
+    - paths:
+        - path: /
+          pathType: ImplementationSpecific
+      # host: mlflow.mydomain.com
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 256Mi
+  requests:
+    cpu: 1000m
+    memory: 256Mi
+# Affinity for pod spread see: https://aws.github.io/aws-eks-best-practices/reliability/docs/application/#using-pod-topology-spread-constraints
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - web-server
+          topologyKey: topology.kubernetes.io/zone
+        weight: 100
+      - podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - web-server
+          topologyKey: kubernetes.io/hostname
+        weight: 99
